@@ -1,0 +1,38 @@
+name: Deploy Application to OpenShift
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy from GHCR'
+        required: true
+        default: latest
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to OpenShift
+        uses: redhat-actions/oc-login@v1
+        with:
+          openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+          openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+          namespace: ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      - name: Apply Kubernetes manifests
+        run: |
+          oc apply -f k8s/openshift/deployment.yaml
+          oc apply -f k8s/openshift/service.yaml
+          oc apply -f k8s/openshift/route.yaml
+
+      - name: Update deployment image
+        run: |
+          oc set image deployment/profile-query profile-query=ghcr.io/${{ github.repository }}:${{ github.event.inputs.image_tag }}
+          oc rollout status deployment/profile-query --timeout=180s
