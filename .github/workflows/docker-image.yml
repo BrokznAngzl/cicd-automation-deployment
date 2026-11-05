@@ -24,7 +24,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
+#          cache: maven
 
       - name: Build Spring Boot
         run: mvn clean package -DskipTests
