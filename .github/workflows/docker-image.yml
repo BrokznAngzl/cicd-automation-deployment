@@ -24,6 +24,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: maven
+
+      - name: Build Spring Boot
+        run: mvn clean package -DskipTests
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
