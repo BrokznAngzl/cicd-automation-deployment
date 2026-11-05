@@ -19,6 +19,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Normalize repository name for GHCR
+        shell: bash
+        run: echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1
         with:
@@ -34,5 +38,5 @@ jobs:
 
       - name: Update deployment image
         run: |
-          oc set image deployment/profile-query profile-query=ghcr.io/${{ github.repository }}:${{ github.event.inputs.image_tag }}
+          oc set image deployment/profile-query profile-query=ghcr.io/${{ env.IMAGE_NAME_LC }}:${{ github.event.inputs.image_tag }}
           oc rollout status deployment/profile-query --timeout=180s
