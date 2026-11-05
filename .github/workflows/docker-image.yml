@@ -27,6 +27,7 @@ jobs:
 #          cache: maven
 
       - name: Build Spring Boot
+        working-directory: ./profile-query
         run: mvn clean package -DskipTests
 
       - name: Set up Docker Buildx
@@ -51,8 +52,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./profile-query
+          file: ./profile-query/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
