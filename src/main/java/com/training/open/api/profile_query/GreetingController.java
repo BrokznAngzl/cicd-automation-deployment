@@ -12,4 +12,9 @@ public class GreetingController {
     public String greeting() {
         return "I'm on my way !!";
     }
+
+    @GetMapping(ApiConstants.PING)
+    public String pingPong() {
+        return "PONG !!";
+    }
 }
