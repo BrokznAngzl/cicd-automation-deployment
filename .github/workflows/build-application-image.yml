@@ -2,6 +2,11 @@ name: Build Application Image
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to build and push (example: 20261109 or 1.2.3). Leave blank to use run number.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -21,6 +26,17 @@ jobs:
       - name: Normalize repository name for GHCR
         shell: bash
         run: echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Resolve image tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "IMAGE_TAG=${{ inputs.image_tag }}" >> "$GITHUB_ENV"
+          else
+            echo "IMAGE_TAG=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          fi
+
+          echo "Resolved image tag: ${IMAGE_TAG}"
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -47,7 +63,7 @@ jobs:
       - name: Build and push image with Jib
         run: |
           mvn -DskipTests compile jib:build \
-            -Djib.to.image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ github.sha }} \
+            -Djib.to.image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${IMAGE_TAG} \
             -Djib.to.tags=latest \
             -Djib.to.auth.username=${{ github.actor }} \
             -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}

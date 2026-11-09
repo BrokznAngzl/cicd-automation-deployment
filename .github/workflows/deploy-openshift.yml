@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Image tag to deploy from GHCR'
+        description: 'Image tag to deploy from GHCR (example: 1.0.0)'
         required: true
         default: latest
 
@@ -19,58 +19,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # DEBUG: ตรวจสอบ Repository และไฟล์
-      - name: Debug Repository Structure
+      - name: Normalize repository name for GHCR
         shell: bash
-        run: |
-          echo "========== REPOSITORY INFO =========="
-          echo "Repository: $GITHUB_REPOSITORY"
-          echo "Workspace: $GITHUB_WORKSPACE"
-          echo "Current Directory: $(pwd)"
-
-          echo ""
-          echo "========== ROOT FILES =========="
-          ls -la
-
-          echo ""
-          echo "========== ALL YAML FILES =========="
-          find . -type f \( -name "*.yaml" -o -name "*.yml" \)
-
-          echo ""
-          echo "========== K8S DIRECTORY =========="
-          if [ -d "k8s" ]; then
-            find k8s -maxdepth 5 -type f -print
-          else
-            echo "ERROR: k8s directory not found"
-          fi
-
-          echo ""
-          echo "========== GIT TRACKED FILES =========="
-          git ls-files
-
-          echo ""
-          echo "========== EXPECTED MANIFESTS =========="
-          for file in \
-            k8s/openshift/deployment.yaml \
-            k8s/openshift/service.yaml \
-            k8s/openshift/route.yaml
-          do
-            if [ -f "$file" ]; then
-              echo "FOUND: $file"
-            else
-              echo "MISSING: $file"
-            fi
-          done
+        run: echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: latest
-
-      - name: Normalize repository name for GHCR
-        shell: bash
-        run: |
-          echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1
@@ -79,21 +35,7 @@ jobs:
           openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
           namespace: ${{ secrets.OPENSHIFT_NAMESPACE }}
 
-      # DEBUG: ตรวจสอบ OpenShift
-      - name: Debug OpenShift Context
-        shell: bash
-        run: |
-          echo "========== OPENSHIFT INFO =========="
-          oc version
-          echo "Current User:"
-          oc whoami
-          echo "Current Project:"
-          oc project
-          echo "Available Resources:"
-          oc get deployments,services,routes,pods
-
-      # ตรวจสอบไฟล์ก่อน Apply
-      - name: Validate Manifest Files
+      - name: Validate manifest files
         shell: bash
         run: |
           set -euo pipefail
@@ -109,9 +51,6 @@ jobs:
               echo "ERROR: File not found: $file"
               exit 1
             fi
-
-            echo "----- $file -----"
-            cat "$file"
           done
 
       - name: Apply Kubernetes manifests
