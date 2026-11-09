@@ -80,8 +80,16 @@ jobs:
           oc set image deployment/profile-query \
             profile-query="$IMAGE"
 
-          echo "========== ROLLOUT STATUS =========="
+          echo "========== RESTART DEPLOYMENT =========="
+          oc rollout restart deployment/profile-query
+
+          echo "========== WAIT FOR ROLLOUT =========="
           oc rollout status deployment/profile-query --timeout=180s
 
           echo "========== FINAL STATUS =========="
           oc get deployment,service,route,pods
+
+          echo "========== DEPLOYED IMAGE =========="
+          oc get deployment profile-query \
+            -o jsonpath='{.spec.template.spec.containers[?(@.name=="profile-query")].image}'
+          echo
