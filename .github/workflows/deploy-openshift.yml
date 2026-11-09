@@ -19,6 +19,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # DEBUG: ตรวจสอบ Repository และไฟล์
+      - name: Debug Repository Structure
+        shell: bash
+        run: |
+          echo "========== REPOSITORY INFO =========="
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Current Directory: $(pwd)"
+
+          echo ""
+          echo "========== ROOT FILES =========="
+          ls -la
+
+          echo ""
+          echo "========== ALL YAML FILES =========="
+          find . -type f \( -name "*.yaml" -o -name "*.yml" \)
+
+          echo ""
+          echo "========== K8S DIRECTORY =========="
+          if [ -d "k8s" ]; then
+            find k8s -maxdepth 5 -type f -print
+          else
+            echo "ERROR: k8s directory not found"
+          fi
+
+          echo ""
+          echo "========== GIT TRACKED FILES =========="
+          git ls-files
+
+          echo ""
+          echo "========== EXPECTED MANIFESTS =========="
+          for file in \
+            k8s/openshift/deployment.yaml \
+            k8s/openshift/service.yaml \
+            k8s/openshift/route.yaml
+          do
+            if [ -f "$file" ]; then
+              echo "FOUND: $file"
+            else
+              echo "MISSING: $file"
+            fi
+          done
+
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
@@ -26,7 +69,8 @@ jobs:
 
       - name: Normalize repository name for GHCR
         shell: bash
-        run: echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+        run: |
+          echo "IMAGE_NAME_LC=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1
@@ -35,13 +79,70 @@ jobs:
           openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
           namespace: ${{ secrets.OPENSHIFT_NAMESPACE }}
 
-      - name: Apply Kubernetes manifests
+      # DEBUG: ตรวจสอบ OpenShift
+      - name: Debug OpenShift Context
+        shell: bash
         run: |
+          echo "========== OPENSHIFT INFO =========="
+          oc version
+          echo "Current User:"
+          oc whoami
+          echo "Current Project:"
+          oc project
+          echo "Available Resources:"
+          oc get deployments,services,routes,pods
+
+      # ตรวจสอบไฟล์ก่อน Apply
+      - name: Validate Manifest Files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for file in \
+            k8s/openshift/deployment.yaml \
+            k8s/openshift/service.yaml \
+            k8s/openshift/route.yaml
+          do
+            echo "Checking $file"
+
+            if [ ! -f "$file" ]; then
+              echo "ERROR: File not found: $file"
+              exit 1
+            fi
+
+            echo "----- $file -----"
+            cat "$file"
+          done
+
+      - name: Apply Kubernetes manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "========== APPLY DEPLOYMENT =========="
           oc apply -f k8s/openshift/deployment.yaml
+
+          echo "========== APPLY SERVICE =========="
           oc apply -f k8s/openshift/service.yaml
+
+          echo "========== APPLY ROUTE =========="
           oc apply -f k8s/openshift/route.yaml
 
       - name: Update deployment image
+        shell: bash
         run: |
-          oc set image deployment/profile-query profile-query=ghcr.io/${{ env.IMAGE_NAME_LC }}:${{ github.event.inputs.image_tag }}
+          set -euo pipefail
+
+          IMAGE="ghcr.io/${IMAGE_NAME_LC}:${{ inputs.image_tag }}"
+
+          echo "========== UPDATE IMAGE =========="
+          echo "Image: $IMAGE"
+
+          oc set image deployment/profile-query \
+            profile-query="$IMAGE"
+
+          echo "========== ROLLOUT STATUS =========="
           oc rollout status deployment/profile-query --timeout=180s
+
+          echo "========== FINAL STATUS =========="
+          oc get deployment,service,route,pods
