@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+
+kind: Deployment
+metadata:
+  name: profile-query
+  labels:
+    app: profile-query
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: profile-query
+  template:
+    metadata:
+      labels:
+        app: profile-query
+    spec:
+      containers:
+        - name: profile-query
+          image: ghcr.io/brokznangzl/cicd-automation-deployment:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

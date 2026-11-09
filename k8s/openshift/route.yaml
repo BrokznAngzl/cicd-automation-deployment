@@ -1,0 +1,14 @@
+apiVersion: route.openshift.io/v1
+
+kind: Route
+metadata:
+  name: profile-query
+spec:
+  to:
+    kind: Service
+    name: profile-query
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
