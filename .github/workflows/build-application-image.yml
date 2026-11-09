@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Image tag to build and push (example: 20261109 or 1.2.3). Leave blank to use run number.'
-        required: false
+        description: 'Image tag to build and push (example: 1.0.0)'
+        required: true
         default: ''
 
 permissions:
