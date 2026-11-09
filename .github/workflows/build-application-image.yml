@@ -1,4 +1,4 @@
-name: Build Image
+name: Build Application Image
 
 on:
   workflow_dispatch:
