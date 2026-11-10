@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: profile-query
+spec:
+  workloadSelector:
+    labels:
+      app: profile-query
+  egress:
+    - hosts:
+        - "./*"
+        - "istio-system/*"
+

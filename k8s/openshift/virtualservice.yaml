@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: profile-query
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - profile-query-gateway
+  http:
+    - match:
+        - uri:
+            prefix: "/"
+      route:
+        - destination:
+            host: profile-query
+            port:
+              number: 8080
+
