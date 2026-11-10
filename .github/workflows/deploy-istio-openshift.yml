@@ -65,6 +65,27 @@ jobs:
             fi
           done
 
+      - name: Check Istio RBAC permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "========== CHECKING ISTIO RBAC =========="
+          oc auth can-i get gateways.networking.istio.io
+          oc auth can-i create gateways.networking.istio.io
+          oc auth can-i get virtualservices.networking.istio.io
+          oc auth can-i create virtualservices.networking.istio.io
+          oc auth can-i get authorizationpolicies.security.istio.io
+          oc auth can-i create authorizationpolicies.security.istio.io
+          oc auth can-i get sidecars.networking.istio.io
+          oc auth can-i create sidecars.networking.istio.io
+
+          if ! oc auth can-i create gateways.networking.istio.io >/dev/null 2>&1; then
+            echo "ERROR: Current OpenShift token does not have permission to manage Istio resources."
+            echo "Grant RBAC to the user/service account before running this workflow."
+            exit 1
+          fi
+
       - name: Apply Istio manifests
         shell: bash
         run: |
