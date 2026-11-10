@@ -1,0 +1,27 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: istio-resource-admin
+  namespace: __NAMESPACE__
+rules:
+  - apiGroups: ["networking.istio.io"]
+    resources: ["gateways", "virtualservices", "sidecars"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["security.istio.io"]
+    resources: ["authorizationpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: istio-resource-admin-binding
+  namespace: __NAMESPACE__
+subjects:
+  - kind: User
+    name: __USER__
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: istio-resource-admin
+  apiGroup: rbac.authorization.k8s.io
+
